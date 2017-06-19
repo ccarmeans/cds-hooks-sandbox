@@ -24,12 +24,10 @@ function bodyClick(e) {
   })
 };
 
-console.log("dispatching")
 AppDispatcher.dispatch({
   type: ActionTypes.NEW_HASH_STATE,
   hash: window.location.hash.slice(1) ? JSON.parse(window.location.hash.slice(1)) : {}
 })
-console.log("DIspatched")
 
 const App = React.createClass({
 
@@ -68,9 +66,9 @@ const App = React.createClass({
     });
   },
 
-  setServiceContextViewSetting(event) {
+  setServiceContextViewSetting() {
     this.setState({
-      serviceContextViewEnabled: event
+      serviceContextViewEnabled: !this.state.serviceContextViewEnabled
     });
   },
 
@@ -78,7 +76,7 @@ const App = React.createClass({
     AppDispatcher.dispatch({
       type: ActionTypes.SET_ACTIVITY,
       hook: code
-    })
+    });
   },
 
   isSmartHealthItSandbox: function() {
