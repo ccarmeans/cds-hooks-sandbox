@@ -125,6 +125,12 @@ pre {
   color: #fff;
   font-size: .85em;
   border-radius: 0;
+
+  white-space: -moz-pre-wrap; /* Mozilla */
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap; /* Opera */
+  white-space: pre-wrap; /* CSS3 */
+  word-wrap: break-word; /* IE 5.5+ */
 }
 
 .btn {
@@ -286,10 +292,30 @@ pre {
       text-decoration: none;
     }
   }
+
+  .log-console-show {
+    display: inline-block;
+    float: left;
+    position: absolute;
+    top: 60px;
+    right: 160px;
+    margin-top: 10px;
+    padding-top: 5px;
+    width: 115px;
+    vertical-align: middle;
+
+    input {
+      float: right;
+    }
+  }
+
+  .log-console-hide {
+    display: none;
+  }
 }
 
 .fhir-view-visible {
-  width: 45%;
+  width: 50%;
 }
 
 /* cards */
@@ -746,6 +772,16 @@ table.drug-choice {
       position: static;
       margin-left: 10px;
     }
+
+    .context-options-container {
+      position: static;
+
+      .log-console-show {
+        position: static;
+        margin-left: 2px;
+        color: #ffffff;
+      }
+    }
   }
 
   .hook-editor {
@@ -763,6 +799,7 @@ table.drug-choice {
       padding: 10px 5px;
       text-align: center;
       border-radius: 0;
+      margin-left: 0;
     }
 
     .dropdown-menu {
@@ -795,6 +832,16 @@ table.drug-choice {
     .configure-fhir-view {
       position: static;
       margin-left: 10px;
+    }
+
+    .context-options-container {
+      position: static;
+
+      .log-console-show {
+        position: static;
+        margin-left: 2px;
+        color: #ffffff;
+      }
     }
   }
 

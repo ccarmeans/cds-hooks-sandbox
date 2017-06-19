@@ -64,7 +64,7 @@ function _hooksChanged() {
     {
       resource: r.data,
       response: {
-        status: r.status + " " + r.statusText
+        status: r.status + (r.statusText ? (" " + r.statusText) : "")
       }
     }
   ]
@@ -117,12 +117,14 @@ function hookBody(h, fhir, prefetch) {
     redirect: _base + "service-done.html",
     user: "Practitioner/example",
     patient: state.get('patient'),
+    context: [],
     prefetch: h.get('prefetch', Immutable.Map())
-               .map(v => prefetch.get(v)),
-    context: []
+               .map(v => prefetch.get(v))
   }
   if (fhir)
     ret.context.push(fhir);
+
+  state = state.set('serviceRequestBody', Immutable.fromJS(ret));
   return ret;
 }
 
@@ -184,19 +186,20 @@ function callHooks(localState) {
   }
 
 
-  localState.get('prefetch').then((prefetch) => {
-    var results = applicableServices.map((h, hookUrl) => axios({
-      url: h.get('url'),
-      method: 'post',
-      data: hookBody(h,
-                     localState.get('fhir') && localState.get('fhir').toJS(),
-                     prefetch),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-    }))
-    .forEach((p, hookUrl) => p.then(result => addCardsFrom(myCallCount, hookUrl, result)))
-  })
+  localState.get('prefetch')
+    .then((prefetch) => {
+      var results = applicableServices.map((h, hookUrl) => axios({
+        url: h.get('url'),
+        method: 'post',
+        data: hookBody(h,
+                       localState.get('fhir') && localState.get('fhir').toJS(),
+                       prefetch),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      ).forEach((p, hookUrl) => p.then(result => addCardsFrom(myCallCount, hookUrl, result)))
+    })
   DecisionStore.emitChange()
 }
 
@@ -221,6 +224,7 @@ var DecisionStore = assign({}, EventEmitter.prototype, {
     }
 
     if (!Immutable.is(resource, state.get('fhir'))) {
+      state = state.set('serviceRequestBody', state.get('serviceRequestBody') || resource);
       state = state.set('fhir', resource)
       state = state.set('cards', Immutable.List())
       setTimeout(() => callHooks(state), DELAY)

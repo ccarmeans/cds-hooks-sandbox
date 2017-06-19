@@ -1,6 +1,4 @@
-import React from 'react'
-import moment from 'moment'
-import Immutable from 'immutable'
+import React from 'react';
 
 var format = v => JSON.stringify(v, null, 2).split(/\n/)
 
@@ -9,44 +7,93 @@ const FhirView = React.createClass({
   getInitialState(){
     return {
       additions: [],
-      shouldHide: false
+      shouldHighlight: false,
+      output: '',
     }
   },
-  shouldComponentUpdate(nextProps, nextState){
-    return nextProps.all.get('decisions').get('fhir') !== this.props.all.get('decisions').get('fhir')
+
+  shouldComponentUpdate(nextProps){
+    if (nextProps.all.get('decisions').get('serviceRequestBody') !== this.props.all.get('decisions').get('serviceRequestBody')) {
+      return true;
+    } else if (nextProps.isServiceViewEnabled !== this.props.isServiceViewEnabled) {
+      return true;
+    } else if (nextProps.isConsoleLogEnabled !== this.props.isConsoleLogEnabled) {
+      return true;
+    }
+    return false;
   },
+
   componentWillReceiveProps(newProps) {
-    var oldLines = format(this.props.all.get('decisions').get('fhir'))
-    var newLines = format(newProps.all.get('decisions').get('fhir'))
+    var oldLines = format(this.props.all.get('decisions').get('serviceRequestBody'))
+    var newLines = format(newProps.all.get('decisions').get('serviceRequestBody'))
+    var diff = newLines.filter((l, ind) => oldLines.indexOf(l) === -1);
+    if (this.state.additions.length !== 0) {
+      this.setState({
+        shouldHighlight: true
+      });
+    }
     this.setState({
-      additions: newLines.filter(l => oldLines.indexOf(l) === -1)
+      additions: diff
     });
   },
 
   componentDidUpdate() {
-    window.setTimeout(() => {
-      Object.keys(this.refs).forEach(k => {
-        var r = this.refs[k];
-        r.getDOMNode().className = "line " + (r.props.isAddition ? "fade-actual" : "");
-      });
-    });
+    if (this.state.additions.length === 0) {
+      this.setState({shouldHighlight: true});
+    }
+  },
+
+  componentWillUpdate(nextProps) {
+    // Log any updates of CDS Service Context changes if logging is enabled
+    var oldLines = format(this.props.all.get('decisions').get('serviceRequestBody'))
+    var newLines = format(nextProps.all.get('decisions').get('serviceRequestBody'))
+    var diff = newLines.filter((l, ind) => oldLines.indexOf(l) === -1);
+    if (diff.length !== 0) {
+      if (nextProps.isConsoleLogEnabled) {
+        console.log(format(nextProps.all.getIn(['decisions', 'serviceRequestBody'])));
+      }
+    }
+  },
+
+  lineStyle(isAddition) {
+    return isAddition && this.state.shouldHighlight ? "line fade-actual" : "line";
+  },
+
+  toggleConsoleLogOption() {
+    // Log the current CDS Service Context in the console before toggling the console log option
+    if (!this.props.isConsoleLogEnabled) {
+      console.log(format(this.props.all.getIn(['decisions', 'serviceRequestBody'])));
+    }
+    this.props.toggleConsoleLog(!this.props.isConsoleLogEnabled);
+  },
+
+  showConsoleLogOption() {
+    // If the CDS Service Context view is hidden, display the console log option
+    if (!this.props.isServiceViewEnabled) {
+      return 'log-console-show';
+    }
+    return 'log-console-hide';
   },
 
   render() {
-    var additions = this.state.additions
-    var output = format(this.props.all.getIn(['decisions', 'fhir'])).map((l, i) => (
-    <div
-      key={i}
-      ref={i}
-      isAddition={additions.indexOf(l) !== -1}
-      className="line"> {l}
-    </div>));
-    if (this.props.all.getIn(['decisions', 'fhir'])){
+    var additions = this.state.additions;
+    var output = format(this.props.all.getIn(['decisions', 'serviceRequestBody'])).map((l, i) => (
+      <div
+        key={i}
+        ref={i}
+        className={this.lineStyle(additions.indexOf(l) !== -1)}> {l}
+      </div>
+    ));
+    if (this.props.all.getIn(['decisions', 'serviceRequestBody'])){
       return (
-        <div className={this.state.shouldHide ? 'fhir-view' : 'fhir-view fhir-view-visible'}>
-          <a className="configure-fhir-view" onClick={this.clickShowHide}>Context</a>
-          <pre className={this.state.shouldHide ? 'hidden' : ''}>{output}</pre>
-
+        <div className={this.props.isServiceViewEnabled ? 'fhir-view fhir-view-visible' : 'fhir-view'}>
+          <div className='context-options-container'>
+            <label className={this.showConsoleLogOption()}>Log to console
+              <input type="checkbox" onChange={this.toggleConsoleLogOption} checked={this.props.isConsoleLogEnabled} />
+            </label>
+            <a className="configure-fhir-view" onClick={this.clickShowHide}>CDS Service Request</a>
+          </div>
+          <pre className={this.props.isServiceViewEnabled ? '' : 'hidden'}>{output}</pre>
         </div>
       );
     } else {
@@ -55,10 +102,7 @@ const FhirView = React.createClass({
   },
 
   clickShowHide(){
-    var state = this.state
-    state.shouldHide = !state.shouldHide
-    this.setState(state)
-    this.forceUpdate()
+    this.props.toggleServiceView(!this.props.isServiceViewEnabled);
   }
 
 });
