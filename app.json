@@ -1,0 +1,34 @@
+{
+  "name": "cds-hooks-sandbox",
+  "description": "Heroku reviews app for cds-hooks-sandbox",
+  "keywords": [
+    "productivity"
+  ],
+  "website": "https://engineering.cerner.com/cds-hooks-sandbox",
+  "repository": "https://github.com/cerner/cds-hooks-sandbox",
+  "success_url": "/",
+  "scripts": {},
+  "env": {
+    "NODE_ENV": {
+      "description": "development environment",
+      "value": "development"
+    },
+    "NPM_CONFIG_PRODUCTION": {
+      "description": "development environment",
+      "value": "false"
+    },
+    "NODE_MODULES_CACHE": {
+      "description": "No cache",
+      "value": "false"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "stack": "heroku-16",
+  "addons": [],
+  "buildpacks": []
+}
