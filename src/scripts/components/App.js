@@ -58,7 +58,7 @@ const App = React.createClass({
       all: AppStore.getState(),
       settingContext: false,
       consoleLogSettingEnabled: false,
-      serviceContextViewEnabled: true,
+      serviceContextViewEnabled: true
     }
   },
 
@@ -88,10 +88,9 @@ const App = React.createClass({
 
   changePatient: function(){
     var dfd = $.Deferred();
-    this.setState({ isNewPatientModalWindow: false });
 
     // If input is empty, close the modal and keep current patient in context
-    if (this.state.patientId === '') {
+    if (this.state.patientId === '' || !this.state.patientId) {
       this.hidePatientModal();
       this.setState({
         patientId: this.state.all.getIn(["fhirServer", "context", "patient"]),
@@ -125,9 +124,55 @@ const App = React.createClass({
     }.bind(this));
   },
 
+  changeFhirServer: function() {
+    var dfd = $.Deferred();
+
+    if (this.state.fhirServer === '' || !this.state.fhirServer) {
+      this.setState({
+        showFhirServerEntryError: true,
+        fhirServerEntryErrorCode: '',
+        fhirAlertMessage: 'Enter a valid FHIR server base URL'
+      });
+      dfd = $.Deferred();
+      return;
+    }
+    var serverFetchResponse = FhirServerStore.checkFhirServerResponse(this.state.fhirServer, dfd);
+
+    // Check if requested FHIR Server contains metadata endpoint
+    serverFetchResponse.then(function(status) {
+
+      if (status === 200) {
+        this.hideFhirModal();
+        this.setState({
+          showFhirServerEntryError: false,
+          fhirServerEntryErrorCode: ''
+        });
+        AppDispatcher.dispatch({
+          type: ActionTypes.CHANGE_FHIR_SERVER,
+          url: this.state.fhirServer
+        });
+        dfd = $.Deferred();
+        this.displayPatientModal();
+      } else {
+        this.setState({
+          fhirServerEntryErrorCode: status,
+          showFhirServerEntryError: true,
+          fhirAlertMessage: `Connecting to the metadata endpoint resulted in a ${status}`
+        });
+        dfd = $.Deferred();
+      }
+    }.bind(this));
+  },
+
   handlePatientChange: function(event) {
     this.setState({
       patientId: event.target.value.toString().trim()
+    });
+  },
+
+  handleFhirServerChange: function(event) {
+    this.setState({
+      fhirServer: event.target.value.toString().trim()
     });
   },
 
@@ -139,16 +184,37 @@ const App = React.createClass({
     });
   },
 
-  hidePatientModal: function() {
+  displayFhirModal: function() {
     this.setState({
-      showPatientModal: false,
-      isNewPatientModalWindow: true
+      showFhirModal: true,
+      fhirServer: ''
     });
   },
 
-  hideModalAlert: function() {
-    if (this.state.isNewPatientModalWindow) return 'remove-display';
-    return this.state.showPatientEntryError ? '' : 'remove-display';
+  hidePatientModal: function() {
+    this.setState({
+      showPatientModal: false,
+      showPatientEntryError: false
+    });
+  },
+
+  hideFhirModal: function() {
+    this.setState({
+      showFhirModal: false,
+      showFhirServerEntryError: false
+    });
+  },
+
+  resetFhirServer: function() {
+    this.hideFhirModal();
+    this.setState({
+      fhirServer: 'https://sb-fhir-dstu2.smarthealthit.org/api/smartdstu2/open'
+    });
+    AppDispatcher.dispatch({
+      type: ActionTypes.CHANGE_FHIR_SERVER,
+      url: 'https://sb-fhir-dstu2.smarthealthit.org/api/smartdstu2/open'
+    });
+    this.displayPatientModal();
   },
 
   patientSelected: function(patientId) {
@@ -185,17 +251,20 @@ const App = React.createClass({
                        active={this.state.patientId === 'BILIBABY6'}>Male | DOB: 2016-2-28</ListGroupItem>
       </ListGroup>);
 
+    var patientModalAlert = this.state.showPatientEntryError ?
+      (<Alert bsStyle="danger">
+        <i className="glyphicon glyphicon-exclamation-sign" />
+        <strong> Error fetching patient: </strong>
+        Patient ID returned a <i>{this.state.patientEntryErrorCode}</i> from the FHIR server
+      </Alert>) : ''
+
     var patientModal =(
       <Modal show={this.state.showPatientModal} onHide={this.hidePatientModal}>
         <Modal.Header closeButton>
           <Modal.Title>Choose a Patient</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Alert bsStyle="danger" className={this.hideModalAlert()}>
-            <i className="glyphicon glyphicon-exclamation-sign" />
-            <strong> Error fetching patient: </strong>
-            Patient ID returned a <i>{this.state.patientEntryErrorCode}</i> from the FHIR server
-          </Alert>
+          {patientModalAlert}
           <div>
             <b>Current FHIR Server</b><br />
             <p>{this.state.all.getIn(["fhirServer", "context", "baseUrl"])}</p>
@@ -223,6 +292,41 @@ const App = React.createClass({
         </Modal.Footer>
       </Modal>);
 
+    var fhirModalAlert = this.state.showFhirServerEntryError ?
+      (<Alert bsStyle="danger">
+        <i className="glyphicon glyphicon-exclamation-sign" />
+        <strong> Error: </strong>
+        {this.state.fhirAlertMessage}
+      </Alert>) : '';
+
+    var fhirModal =(
+      <Modal show={this.state.showFhirModal} onHide={this.hideFhirModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Change FHIR Server</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {fhirModalAlert}
+          <div>
+            <b>Current FHIR Server</b><br />
+            <p>{this.state.all.getIn(["fhirServer", "context", "baseUrl"])}</p>
+          </div>
+          <div className="input-container">
+            <label>Enter FHIR Server URL:</label>
+            <input className="form-control"
+                   autoFocus={true}
+                   placeholder={this.state.all.getIn(["fhirServer", "context", "baseUrl"])}
+                   type="text"
+                   onChange={this.handleFhirServerChange}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button className='left-aligned-modal-button' bsStyle="link" onClick={this.resetFhirServer}>Reset to default FHIR server</Button>
+          <Button bsStyle="primary" onClick={this.changeFhirServer}>Next</Button>
+          <Button onClick={this.hideFhirModal}>Close</Button>
+        </Modal.Footer>
+      </Modal>);
+
     return (
       <div id="react-content">
         <div id="top-bar" className="app-header">
@@ -232,6 +336,8 @@ const App = React.createClass({
             <a className={rxClass} onClick={e=>this.setActivity("medication-prescribe")}>Rx View</a>
             <a className="nav-button change-patient" onClick={this.displayPatientModal}>Change Patient</a>
             {patientModal}
+            <a className="nav-button change-patient" onClick={this.displayFhirModal}>Change FHIR Server</a>
+            {fhirModal}
           </div>
         </div>
 

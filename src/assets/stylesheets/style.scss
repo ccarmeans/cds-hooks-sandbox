@@ -250,6 +250,11 @@ pre {
     }
 }
 
+.left-aligned-modal-button {
+  float: left;
+  padding-left: 0;
+}
+
 /* Components
 ====================================================================================== */
 .remove-display {
@@ -742,7 +747,7 @@ table.drug-choice {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 975px) {
 
   .app-header {
     position: static;
