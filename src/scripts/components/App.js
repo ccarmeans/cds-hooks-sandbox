@@ -55,7 +55,7 @@ const App = React.createClass({
     return {
       all: AppStore.getState(),
       settingContext: false,
-      consoleLogSettingEnabled: false,
+      consoleLogSettingEnabled: true,
       serviceContextViewEnabled: true,
     }
   },

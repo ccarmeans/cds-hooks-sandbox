@@ -23,7 +23,7 @@ const FhirView = React.createClass({
       shouldHighlightResponse: false,
       output: '',
       activeTab: 1,
-      isOpen: true,
+      isOpen: true
     }
   },
 
@@ -90,35 +90,6 @@ const FhirView = React.createClass({
     }
   },
 
-  componentWillUpdate(nextProps) {
-    // Log any updates of CDS Service Context changes if logging is enabled
-    if (this.props.all.get('decisions').get('serviceRequestBody')) {
-      var oldRequest = format(this.props.all.get('decisions').get('serviceRequestBody'));
-      var newRequest = format(nextProps.all.get('decisions').get('serviceRequestBody'));
-      if (newRequest) {
-        var reqDiff = newRequest.filter((l, ind) => oldRequest.indexOf(l) === -1);
-        if (reqDiff.length !== 0) {
-          if (nextProps.isConsoleLogEnabled) {
-            console.log("CDS Service Request", format(nextProps.all.getIn(['decisions', 'serviceRequestBody'])));
-          }
-        }
-      }
-    }
-
-    if (this.props.all.get('decisions').get('serviceResponseBody')) {
-      var oldResponse = format(this.props.all.get('decisions').get('serviceResponseBody'));
-      var newResponse = format(nextProps.all.get('decisions').get('serviceResponseBody'));
-      if (newResponse) {
-        var resDiff = newResponse.filter((l, ind) => oldResponse.indexOf(l) === -1);
-        if (resDiff.length !== 0) {
-          if (nextProps.isConsoleLogEnabled) {
-            console.log("CDS Service Response", format(nextProps.all.getIn(['decisions', 'serviceResponseBody'])));
-          }
-        }
-      }
-    }
-  },
-
   lineStyle(isAddition, isRequest) {
     if (isRequest === 'request') {
       return isAddition && this.state.shouldHighlightRequest ? "line fade-actual" : "line";
@@ -126,21 +97,11 @@ const FhirView = React.createClass({
     return isAddition && this.state.shouldHighlightResponse ? "line fade-actual" : "line";
   },
 
-  toggleConsoleLogOption() {
-    // Log the current CDS Service Context in the console before toggling the console log option
-    if (!this.props.isConsoleLogEnabled) {
-      console.log("CDS Service Request", format(this.props.all.getIn(['decisions', 'serviceRequestBody'])));
-      console.log("CDS Service Response", format(this.props.all.getIn(['decisions', 'serviceResponseBody'])));
-    }
-    this.props.toggleConsoleLog(!this.props.isConsoleLogEnabled);
-  },
-
   handleSelect(activeTab) {
     this.setState({ activeTab });
   },
 
   handleServiceChange(event) {
-    console.log("hit 1");
     AppDispatcher.dispatch({
       type: ActionTypes.SET_SERVICE,
       service: event.target.value
@@ -157,6 +118,7 @@ const FhirView = React.createClass({
           className={this.lineStyle(requestAdditions.indexOf(l) !== -1, 'request')}> {l}
         </div>
       ));
+      console.log("CDS Service Request", format(this.props.all.getIn(['decisions', 'serviceRequestBody'])));
     }
 
     var responseOutput = '';
@@ -169,6 +131,7 @@ const FhirView = React.createClass({
           className={responseAdditions ? this.lineStyle(responseAdditions.indexOf(l) !== -1, 'response') : ''}> {l}
         </div>
       ));
+      console.log("CDS Service Response", format(this.props.all.getIn(['decisions', 'serviceResponseBody'])));
     }
 
     var requestPanel = (
@@ -190,25 +153,19 @@ const FhirView = React.createClass({
     );
 
     var contextClass = this.props.isServiceViewEnabled ? 'order-entry cds-service-view context-open' : 'order-entry cds-service-view';
-    var anyValidServices = this.props.all.getIn(['hooks', 'hooks']).filter((hook) => {
+    var validServices = this.props.all.getIn(['hooks', 'hooks']).filter((hook) => {
       return hook.get('hook') === this.props.hook;
     });
 
-    if (anyValidServices && anyValidServices.size){
+    if (validServices && validServices.size){
       return (
         <div className={contextClass}>
           <div className='wrap-context'>
-            <h1 className="view-title">CDS Service Exchange
-              <label className='console-log-option'>Log to console
-                <input type="checkbox" onChange={this.toggleConsoleLogOption} checked={this.props.isConsoleLogEnabled} />
-              </label>
-            </h1>
+            <h1 className="view-title">CDS Service Exchange</h1>
             <label className='service-dropdown-select'>Select a Service:
               <select onChange={this.handleServiceChange}>
                 {
-                  this.props.all.getIn(['hooks', 'hooks']).filter((hook) => {
-                    return hook.get('hook') === this.props.hook
-                  }).map((hook, serviceName) =>
+                  validServices.map((hook, serviceName) =>
                     <option key={hook.get('id')} value={serviceName}>{serviceName}</option>
                   ).valueSeq().toJS()
                 }

@@ -938,7 +938,6 @@ table.drug-choice {
   }
 
   .fhir-view {
-    padding: 15px;
     .configure-fhir-view {
       position: static;
       margin-left: 10px;
@@ -947,6 +946,10 @@ table.drug-choice {
     .context-options-container {
       position: static;
     }
+  }
+
+  pre {
+    padding: 15px;
   }
 
 }
