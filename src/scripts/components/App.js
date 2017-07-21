@@ -127,7 +127,7 @@ const App = React.createClass({
   changeFhirServer: function() {
     var dfd = $.Deferred();
 
-    if (this.state.fhirServer === '' || !this.state.fhirServer) {
+    if (this.state.fhirServer === '' || !this.state.fhirServer || !this.state.fhirServer.trim()) {
       this.setState({
         showFhirServerEntryError: true,
         fhirServerEntryErrorCode: '',
@@ -136,17 +136,34 @@ const App = React.createClass({
       dfd = $.Deferred();
       return;
     }
-    var serverFetchResponse = FhirServerStore.checkFhirServerResponse(this.state.fhirServer, dfd);
+
+    var checkUrl = this.state.fhirServer.trim();
+    if (!/^(https?:)?\/\//i.test(checkUrl)) {
+      checkUrl = 'http://' + checkUrl;
+      this.setState({
+        fhirServer: checkUrl
+      });
+    }
+
+    var serverFetchResponse = FhirServerStore.checkFhirServerResponse(checkUrl, dfd);
 
     // Check if requested FHIR Server contains metadata endpoint
-    serverFetchResponse.then(function(status) {
+    serverFetchResponse.then(function(response) {
 
-      if (status === 200) {
+      if (response && response.status === 200) {
         this.hideFhirModal();
-        this.setState({
-          showFhirServerEntryError: false,
-          fhirServerEntryErrorCode: ''
-        });
+        if(response.data.url.indexOf('https') > -1 && this.state.fhirServer.indexOf('https') < 0) {
+          var tempUrlString = this.state.fhirServer;
+          this.setState({
+            showFhirServerEntryError: false,
+            fhirServerEntryErrorCode: '',
+            fhirServer: tempUrlString.replace("http", "https")
+          });
+        } else {
+          this.setState({
+            showFhirServerEntryError: false
+          });
+        }
         AppDispatcher.dispatch({
           type: ActionTypes.CHANGE_FHIR_SERVER,
           url: this.state.fhirServer
@@ -155,9 +172,8 @@ const App = React.createClass({
         this.displayPatientModal();
       } else {
         this.setState({
-          fhirServerEntryErrorCode: status,
           showFhirServerEntryError: true,
-          fhirAlertMessage: `Connecting to the metadata endpoint resulted in a ${status}`
+          fhirAlertMessage: 'Cannot read from this FHIR server. See console for more details.'
         });
         dfd = $.Deferred();
       }

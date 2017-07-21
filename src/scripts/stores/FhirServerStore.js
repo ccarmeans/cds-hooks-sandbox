@@ -80,10 +80,10 @@ function _checkValidFhirServer(serverUrl, dfd) {
   var tempState = state.set("context", state.get("context").merge({ baseUrl: serverUrl }));
   var tempClient = fhirClient(tempState.get("context").toJS());
   tempClient.conformance({}).then(response => {
-    return dfd.resolve(response.status);
+    return dfd.resolve(response);
   }).catch(response => {
     console.log("Error fetching metadata for requested FHIR server", response);
-    return dfd.resolve(response.status);
+    return dfd.resolve(response);
   });
   return dfd.promise();
 }
